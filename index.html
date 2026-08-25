@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+</head>
+<body>
+    <h1>Calculadora de Viga no Navegador</h1>
+    <div id="plot"></div>
+
+    <script type="py" config='{"packages": ["anastruct", "matplotlib"]}'>
+        from anastruct import SystemElements
+        from pyscript import display
+
+        # 1. Monta a viga em Python
+        ss = SystemElements()
+        ss.add_element(location=[[0, 0], [4, 0]])
+        ss.add_support_hinged(node_id=1)
+        ss.add_support_roll(node_id=2)
+        ss.point_load(node_id=2, Fy=-15)
+        ss.solve()
+
+        # 2. Renderiza o gráfico na tela HTML
+        fig = ss.show_bending_moment(show=False)
+        display(fig, target="plot")
+    </script>
+</body>
+</html>
