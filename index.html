@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Ftool no Navegador</title>
+
+    <!-- Carrega a biblioteca do PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+</head>
+<body>
+
+    <h1>Análise Estrutural 2D (Ftool Web)</h1>
+    <p>Aguarde alguns segundos na primeira vez para o navegador carregar o interpretador Python e a biblioteca anastruct...</p>
+
+    <!-- Espaço onde o gráfico da viga será renderizado -->
+    <div id="grafico-viga"></div>
+
+    <!-- O segredo está no 'config': ele manda o navegador instalar o anastruct e o matplotlib -->
+    <script type="py" config='{"packages": ["anastruct", "matplotlib"]}'>
+        from anastruct import SystemElements
+        from pyscript import display
+        import matplotlib.pyplot as plt
+
+        # 1. Cria a estrutura
+        ss = SystemElements()
+
+        # 2. Adiciona uma barra de 5 metros (do ponto x=0 ao x=5)
+        ss.add_element(location=[[0, 0], [5, 0]])
+
+        # 3. Adiciona os apoios (Nó 1 = Engaste/Fixo, Nó 2 = Rolete)
+        ss.add_support_hinged(node_id=1)
+        ss.add_support_roll(node_id=2)
+
+        # 4. Aplica uma carga de 10 kN para baixo no meio da viga (Nó 2)
+        ss.point_load(node_id=2, Fy=-10)
+
+        # 5. Resolve as equações estruturais
+        ss.solve()
+
+        # 6. Gera o diagrama de Momento Fletor
+        fig = ss.show_bending_moment(show=False)
+
+        # 7. Exibe a imagem dentro da div 'grafico-viga' no HTML
+        display(fig, target="grafico-viga")
+    </script>
+
+</body>
+</html>
