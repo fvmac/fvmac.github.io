@@ -32,12 +32,12 @@
                 
                 statusDiv.innerText = "⏳ Carregando pacotes de cálculo (NumPy & Matplotlib)...";
                 
-                // 2. Carrega pacotes pré-compilados e oficiais do Pyodide
+                // 2. Carrega pacotes pré-compilados do Pyodide
                 await pyodide.loadPackage(["numpy", "matplotlib"]);
 
                 statusDiv.innerText = "⚡ Calculando estrutura e gerando diagramas...";
 
-                // 3. Executa o cálculo de Engenharia diretamente em Python puro com NumPy
+                // 3. Executa o cálculo de Engenharia diretamente em Python
                 pyodide.runPython(`
 import io
 import base64
@@ -50,7 +50,6 @@ P = 15.0        # Carga pontual (kN) para baixo
 a = 3.0         # Posição da carga (meio da viga)
 
 # --- REAÇÕES DE APOIO (Viga bi-apoiada) ---
-# Ra + Rb = P e Sum(Ma) = 0
 Rb = (P * a) / L
 Ra = P - Rb
 
@@ -73,12 +72,12 @@ ax1.axhline(0, color='black', linewidth=0.8, linestyle='--')
 ax1.set_title('Diagrama de Esforço Cortante (kN)', fontsize=11, fontweight='bold')
 ax1.grid(True, linestyle=':', alpha=0.6)
 
-# Diagrama de Momento Fletor (Desenhado invertido conforme a convenção da Engenharia Civil)
+# Diagrama de Momento Fletor (Invertido conforme convenção da Engenharia Civil)
 ax2.plot(x, M, color='#dc2626', linewidth=2)
 ax2.fill_between(x, M, color='#ef4444', alpha=0.3)
 ax2.axhline(0, color='black', linewidth=0.8, linestyle='--')
 ax2.set_title('Diagrama de Momento Fletor (kNm) - [Tracionado para Baixo]', fontsize=11, fontweight='bold')
-ax2.gca().invert_yaxis()
+ax2.invert_yaxis()  # <-- CORREÇÃO: Método correto para inverter o eixo y do subplot
 ax2.grid(True, linestyle=':', alpha=0.6)
 
 plt.tight_layout()
