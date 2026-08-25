@@ -3,48 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini Ftool no Navegador</title>
-
-    <!-- Carrega a biblioteca do PyScript -->
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <title>Pórtico Interativo com NumPy</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f8fafc; }
+        .controles { background: white; padding: 15px; border-radius: 8px; max-width: 500px; margin: 0 auto 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .controle { margin: 10px 0; }
+        label { font-weight: bold; }
+    </style>
 </head>
 <body>
 
-    <h1>Análise Estrutural 2D (Ftool Web)</h1>
-    <p>Aguarde alguns segundos na primeira vez para o navegador carregar o interpretador Python e a biblioteca anastruct...</p>
+    <h1>Análise Estrutural Interativa com NumPy</h1>
 
-    <!-- Espaço onde o gráfico da viga será renderizado -->
-    <div id="grafico-viga"></div>
+    <div class="controles">
+        <div class="controle">
+            <label for="comprimento">Comprimento (m): <span id="val-L">6</span></label><br>
+            <input type="range" id="comprimento" min="2" max="12" step="0.5" value="6">
+        </div>
+        <div class="controle">
+            <label for="carga">Carga (kN): <span id="val-P">15</span></label><br>
+            <input type="range" id="carga" min="1" max="50" step="1" value="15">
+        </div>
+    </div>
 
-    <!-- O segredo está no 'config': ele manda o navegador instalar o anastruct e o matplotlib -->
-    <script type="py" config='{"packages": ["anastruct", "matplotlib"]}'>
-        from anastruct import SystemElements
-        from pyscript import display
-        import matplotlib.pyplot as plt
+    <div id="status">⏳ Carregando Python no navegador...</div>
+    <div id="grafico"></div>
 
-        # 1. Cria a estrutura
-        ss = SystemElements()
+    <script>
+        let pyodideObj = null;
 
-        # 2. Adiciona uma barra de 5 metros (do ponto x=0 ao x=5)
-        ss.add_element(location=[[0, 0], [5, 0]])
+        async function inicializar() {
+            pyodideObj = await loadPyodide();
+            await pyodideObj.loadPackage(["numpy", "matplotlib"]);
+            document.getElementById("status").innerText = "✅ Pronto! Mova os controles acima para recalcular.";
+            document.getElementById("status").style.color = "#16a34a";
+            
+            // Adiciona eventos aos sliders
+            document.getElementById("comprimento").addEventListener("input", recalcular);
+            document.getElementById("carga").addEventListener("input", recalcular);
 
-        # 3. Adiciona os apoios (Nó 1 = Engaste/Fixo, Nó 2 = Rolete)
-        ss.add_support_hinged(node_id=1)
-        ss.add_support_roll(node_id=2)
+            recalcular();
+        }
 
-        # 4. Aplica uma carga de 10 kN para baixo no meio da viga (Nó 2)
-        ss.point_load(node_id=2, Fy=-10)
+        function recalcular() {
+            if (!pyodideObj) return;
 
-        # 5. Resolve as equações estruturais
-        ss.solve()
+            const L = parseFloat(document.getElementById("comprimento").value);
+            const P = parseFloat(document.getElementById("carga").value);
 
-        # 6. Gera o diagrama de Momento Fletor
-        fig = ss.show_bending_moment(show=False)
+            document.getElementById("val-L").innerText = L;
+            document.getElementById("val-P").innerText = P;
 
-        # 7. Exibe a imagem dentro da div 'grafico-viga' no HTML
-        display(fig, target="grafico-viga")
+            // Executa o cálculo e gráfico via NumPy no Python
+            pyodideObj.runPython(`
+import io, base64
+import numpy as np
+import matplotlib.pyplot as plt
+
+L = ${L}
+P = ${P}
+a = L / 2
+
+# Matriz de resolução com NumPy
+x = np.linspace(0, L, 100)
+M = np.where(x < a, (P/2) * x, (P/2) * x - P * (x - a))
+
+fig, ax = plt.subplots(figsize=(7, 3))
+ax.plot(x, M, color='#dc2626', linewidth=2)
+ax.fill_between(x, M, color='#ef4444', alpha=0.3)
+ax.axhline(0, color='black', linewidth=0.8)
+ax.set_title(f'Momento Fletor M_máx = {(P*L)/4:.2f} kNm')
+ax.invert_yaxis()
+ax.grid(True, linestyle=':')
+
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+buf.seek(0)
+img_str = base64.b64encode(buf.read()).decode('utf-8')
+plt.close(fig)
+
+img_html = f'<img src="data:image/png;base64,{img_str}" />'
+            `);
+
+            document.getElementById("grafico").innerHTML = pyodideObj.globals.get('img_html');
+        }
+
+        inicializar();
     </script>
-
 </body>
 </html>
